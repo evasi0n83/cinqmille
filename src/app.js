@@ -1,6 +1,7 @@
 import {COLORS,createGame,currentStep,scoreOf,livesOf,fallbackOf,ranking,previewTurn,applyTurn,undoTurn,validateSavedGame} from './game.js';
 import {liveConfigured,createRoom,publishRoom,invitationURL,watchRoom} from './live.js';
 import QRCode from 'qrcode';
+import {renderGame} from './ui.js';
 
 const app=document.querySelector('#app'),modal=document.querySelector('#modal'),saveState=document.querySelector('#save-state');
 const STORAGE='5000-cockpit-v1',fmt=n=>Number(n).toLocaleString('fr-FR');
@@ -18,12 +19,19 @@ function hearts(lives){return `<span class="hearts" aria-label="${lives} vie${li
 function avatar(player){return `<span class="avatar" style="--player:${player.color}" aria-hidden="true">${escape(player.name[0].toLocaleUpperCase('fr'))}</span>`;}
 function eventText(game){const e=game.lastEvent;if(!e)return 'La partie commence. À '+game.players[game.turn].name+' !';if(e.type==='undo')return 'Dernier tour annulé. À '+game.players[game.turn].name+'.';if(e.winner)return e.name+' remporte la partie avec 5 000 pile !';if(e.type==='score')return `${e.name} +${fmt(e.amount)}${e.effects.length?' · '+e.effects.map(v=>`${v.name} : ${fmt(v.palier)} barré${v.to<v.from?' → '+fmt(v.to):''}`).join(' · '):' → '+fmt(e.to)}.`;return `${e.name} · ${e.type==='bigfail'?'Big fail':e.type==='overflow'?'Dépassement, fail':'Fail'}${e.to<e.from?' · Repli à '+fmt(e.to):e.to===0?' · Reste à 0':' · '+e.lives+' vie'+(e.lives>1?'s':'')+' restante'+(e.lives>1?'s':'')}.`;}
 function render(){
+  document.body.dataset.screen=screen;
+  const playing=screen==='game'&&session;
+  const undo=document.querySelector('#undo-header');
+  undo.hidden=!playing||spectator;
+  undo.disabled=!playing||!session.game.actions.length||busy;
+  document.querySelector('#header-context').innerHTML=playing?'<span>Manche '+session.game.round+'</span><span>'+session.game.players.length+' joueurs</span>':'';
   if(screen==='setup'){renderSetup();return;}
   if(screen==='watch-loading'){app.innerHTML='<section class="panel wait-panel"><span class="eyebrow">SPECTATEUR</span><h1>Connexion à la partie…</h1><p>Les scores vont apparaître ici.</p></section>';return;}
-  if(screen==='watch-error'){return;}
-  const game=session.game,p=game.players[game.turn],winner=game.players.find(q=>q.id===game.winner);
-  app.innerHTML=`<div class="room-line"><span class="room-tag">${spectator?'SPECTATEUR':'TÉLÉPHONE HÔTE'}</span><span>Manche ${game.round} · ${game.players.length} joueurs</span></div><div class="game-grid"><section class="leaderboard" aria-label="Classement"><div class="section-heading"><h1>La course aux 5 000</h1><span>${winner?'TERMINÉE':'CLASSEMENT'}</span></div><div class="player-list">${ranking(game).map(({player,rank})=>`<button type="button" class="player-row ${player.id===p.id&&!winner?'active':''} ${rank===1&&scoreOf(player)>0?'leader':''}" data-player="${player.id}" aria-label="${escape(player.name)}, ${fmt(scoreOf(player))} points, ${livesOf(player)} vies, voir les paliers"><span class="rank">${rank}<small>${rank===1?'er':'e'}</small></span>${avatar(player)}<span class="player-info"><span class="player-name">${escape(player.name)}${player.id===p.id&&!winner?'<small>À TOI</small>':''}</span><span class="meter"><span style="width:${scoreOf(player)/50}%;background:${player.color}"></span></span></span><span class="player-points"><strong>${fmt(scoreOf(player))}</strong>${hearts(livesOf(player))}</span></button>`).join('')}</div><div class="leaderboard-foot"><span>Touche un joueur pour voir ses paliers</span>${!spectator?'<button class="text-button" data-action="share">Inviter des spectateurs</button>':''}</div></section><section class="control-zone" aria-label="${spectator?'Tour en cours':'Saisie des scores'}">${winner?`<section class="turn-panel finished"><span class="eyebrow">VICTOIRE</span><h2>${escape(winner.name)}</h2><strong class="winner-score">5 000</strong><button class="primary" data-action="victory">Revoir la victoire</button></section>`:`<section class="turn-panel"><div class="turn-top"><span class="eyebrow">${spectator?'AU TOUR DE':'À TOI DE JOUER'}</span>${hearts(livesOf(p))}</div><div class="turn-main"><h2>${escape(p.name)}</h2><strong>${fmt(scoreOf(p))}</strong></div><div class="turn-bottom"><span>Repli <b>${fmt(fallbackOf(p)?.score||0)}</b></span><span>Ensuite <b>${escape(game.players[(game.turn+1)%game.players.length].name)}</b></span></div></section>`}<div id="turn-event" class="turn-event" role="status" aria-live="polite">${escape(eventText(game))}</div>${!spectator&&!winner?`<section class="entry-panel"><div class="draft-line"><label for="turn-score">Score du tour<small id="score-projection"></small></label><div class="score-input"><span aria-hidden="true">+</span><input id="turn-score" type="number" inputmode="numeric" min="0" max="999999" step="1" value="${draft}" aria-label="Score personnalisé du tour"><button class="clear-score" data-action="clear" aria-label="Effacer le score du tour">×</button></div></div><div class="score-buttons">${[100,200,500,1000].map(n=>`<button class="score-button" data-add="${n}" ${busy?'disabled':''}>+${fmt(n)}</button>`).join('')}</div><button class="primary validate" id="validate-score" data-action="score" ${busy?'disabled':''}>Valider le score</button><p id="score-hint" class="score-hint" aria-live="polite"></p><div class="fail-buttons"><button data-action="fail" ${busy?'disabled':''}>Fail <small>−1 vie</small></button><button data-action="bigfail" ${busy?'disabled':''}>Big fail <small>−2 vies</small></button></div><button class="undo-button" data-action="undo" ${game.actions.length&&!busy?'':'disabled'}>↶ Annuler le dernier tour</button></section>`:spectator?'<div class="spectator-note"><span class="live-indicator"></span><span id="live-state">'+escape(liveStatus||'Lecture seule')+'</span></div>':'<button class="primary new-game" data-action="new">Nouvelle partie</button>'}</section></div>`;
+  if(screen==='watch-error')return;
+  const restoreFocus=app.contains(document.activeElement);
+  app.innerHTML=renderGame(session.game,{spectator,busy,draft,liveStatus,message:eventText(session.game)});
   updateDraft();status();
+  if(restoreFocus&&!modal.open){const next=app.querySelector('[data-add]:not(:disabled)')||app.querySelector('[data-player]');next?.focus({preventScroll:true});}
 }
 function renderSetup(){
   app.innerHTML=`<section class="setup panel"><div class="setup-intro"><span class="eyebrow">À VOS CINQ DÉS</span><h1>Qui joue ce soir ?</h1><p>Ajoute les joueurs dans l’ordre des tours.</p></div><form id="setup-form"><div class="name-list">${setupNames.map((name,i)=>`<div class="name-row"><span class="avatar" style="--player:${COLORS[i]}" aria-hidden="true">${i+1}</span><label class="visually-hidden" for="name-${i}">Joueur ${i+1}</label><input id="name-${i}" data-name="${i}" type="text" maxlength="24" autocomplete="off" value="${escape(name)}" placeholder="Prénom du joueur ${i+1}" required><button type="button" class="remove-player" data-remove="${i}" aria-label="Retirer le joueur ${i+1}" ${setupNames.length<=2?'disabled':''}>×</button></div>`).join('')}</div><button type="button" class="secondary add-player" data-action="add-player" ${setupNames.length>=12?'disabled':''}>+ Ajouter un joueur</button><div class="rules-chip"><span>Entrée <b>400 min.</b></span><span>Palier <b>3 vies</b></span><span>Victoire <b>5 000 pile</b></span></div><p id="setup-error" class="form-error" role="alert"></p><button type="submit" class="primary start-game">Commencer la partie</button>${session?'<button type="button" class="text-button cancel-setup" data-action="resume">Reprendre la partie en cours</button>':''}</form></section>`;
@@ -35,11 +43,11 @@ function updateDraft(){
   button.disabled=!preview.valid||busy;
   input.disabled=busy;
   button.classList.toggle('overflow',Boolean(preview.overflow));
-  button.textContent=busy?'Enregistrement…':preview.overflow?'Dépassement · Compter un fail':draft>0?`Valider +${fmt(draft)} →`:'Valider le score →';
-  document.querySelector('#score-projection').textContent=scoreOf(p)===0&&draft<400?'Minimum 400 pour entrer':`${fmt(scoreOf(p))} → ${fmt(scoreOf(p)+draft)} points`;
-  const hint=document.querySelector('#score-hint');
-  hint.textContent=preview.overflow?preview.message:preview.win?'5 000 pile : la victoire est à toi !':preview.victims?.length?`${fmt(preview.to)} : palier de ${preview.victims.join(' et ')} en danger !`:draft>0&&!preview.valid?preview.message:'';
-  hint.classList.toggle('warning',Boolean(preview.overflow||preview.victims?.length||!preview.valid&&draft>0));
+  button.textContent=busy?'Enregistrement…':preview.overflow?'Compter un fail':draft>0?`Valider +${fmt(draft)}`:'Valider';
+  document.querySelector('#score-projection').textContent=scoreOf(p)===0&&draft<400?'Entrée : 400 minimum':`${fmt(scoreOf(p))} → ${fmt(scoreOf(p)+draft)} pts`;
+  const hint=document.querySelector('#turn-message');
+  hint.textContent=preview.overflow?preview.message:preview.win?'5 000 pile : la victoire est à toi !':preview.victims?.length?`${fmt(preview.to)} : palier de ${preview.victims.join(' et ')} en danger !`:draft>0&&!preview.valid?preview.message:eventText(game);
+  document.querySelector('#turn-event').classList.toggle('warning',Boolean(preview.overflow||preview.victims?.length||!preview.valid&&draft>0));
 }
 function openModal(title,html,css=''){
   modalVersion++;
@@ -93,6 +101,7 @@ function newGame(){if(spectator)return;if(session){openModal('Commencer une autr
 async function handleAction(action){
   if(action==='close'){modal.close();return;}
   if(action==='rules'){showRules();return;}
+  if(action==='event-details'){openModal('Info de la partie','<div class="modal-body"><p>'+escape(document.querySelector('#turn-message')?.textContent||'')+'</p></div>');return;}
   if(action==='install'){openModal('Sur ton écran d’accueil','<div class="modal-body"><p><b>Sur iPhone :</b> ouvre cette page dans Safari, touche Partager, puis « Sur l’écran d’accueil ».</p><p><b>Sur Android :</b> dans le menu du navigateur, choisis « Installer l’application » ou « Ajouter à l’écran d’accueil ».</p><p>Une fois ouverte, la partie reste utilisable sans réseau sur le téléphone hôte.</p></div>');return;}
   if(action==='victory'){victory();return;}
   if(spectator)return;

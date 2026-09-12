@@ -1,0 +1,17 @@
+{
+  "name": "5000-cockpit",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Le 5000 à cinq dés, avec paliers, vies et spectateurs.",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/serve.mjs"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.0",
+    "qrcode": "^1.5.4"
+  },
+  "devDependencies": { "esbuild": "^0.25.9" }
+}

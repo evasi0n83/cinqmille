@@ -66,4 +66,3 @@ Les tests automatisés couvrent l’entrée à 400, les paliers cumulatifs, les 
 La connexion à Supabase et les droits réels doivent être vérifiés après configuration avec trois sessions distinctes : hôte, spectateur invité et utilisateur non invité. Le spectateur doit échouer sur la RPC d’écriture et sur les écritures REST directes ; l’utilisateur non invité ne doit lire aucune partie.
 
 Références : [GitHub Pages](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages), [Supabase Anonymous Sign-Ins](https://supabase.com/docs/guides/auth/auth-anonymous), [Postgres Changes](https://supabase.com/docs/guides/realtime/postgres-changes), [Row Level Security](https://supabase.com/docs/guides/database/postgres/row-level-security).
-

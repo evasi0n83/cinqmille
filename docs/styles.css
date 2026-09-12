@@ -57,4 +57,22 @@ body[data-screen="game"] .app-footer{margin-top:8px;align-items:center;flex-wrap
 .watching-score{text-align:right}.watching-score>strong{font-size:1.6rem;font-weight:1000}.compact-victory{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:center}.compact-victory .eyebrow{grid-column:1/-1}.compact-victory h1{font-size:1.5rem;font-weight:1000;overflow-wrap:anywhere}.compact-victory>strong{font-size:1.8rem;font-weight:1000;color:var(--gold)}.compact-victory .primary{grid-column:1/-1;min-height:44px;font-size:.875rem;padding:8px;margin-bottom:4px}
 @media(max-width:350px){body[data-screen="game"] .app-shell{padding-right:8px;padding-left:8px}.entry-heading{grid-template-columns:minmax(0,1fr) 138px;gap:8px}.active-player h1{font-size:1.25rem}.header-context{margin-right:0;font-size:.6875rem}.header-actions{gap:5px}body[data-screen="game"] .player-row{grid-template-columns:18px 25px minmax(0,1fr) auto;gap:5px;padding-right:7px;padding-left:7px}body[data-screen="game"] .player-points{gap:5px}body[data-screen="game"] .player-points strong{font-size:1.1875rem}body[data-screen="game"] .player-name{font-size:.8125rem}}
 @media(min-width:850px){body[data-screen="game"] .app-shell{padding-top:20px;padding-bottom:20px}body[data-screen="game"] .game-grid{gap:16px}.score-console{padding:16px}.entry-heading{grid-template-columns:minmax(0,1fr) 190px}.active-player h1{font-size:1.75rem}body[data-screen="game"] .player-row{min-height:52px}body[data-screen="game"] .leaderboard:not([data-density="rows"]) .player-row{min-height:56px}}
+/* Checkpoint tracks stay visible and wrap within each full-width player card. */
+.player-card{min-width:0;border:1px solid #62557d;border-radius:12px;background:linear-gradient(155deg,#3b315a,#261e40 70%);box-shadow:inset 0 1px #ac91b740,0 2px #090619}
+.player-card.active{border-color:var(--cyan);background:linear-gradient(150deg,#334b66,#272b49);box-shadow:inset 0 1px #b9f6ff70,0 0 10px #6cdfff14,0 2px #090619}
+body[data-screen="game"] .player-card .player-row{min-height:44px;border:0;border-radius:11px;background:transparent;box-shadow:none}
+.player-checkpoints{padding:0 9px 8px}
+.checkpoint-track{display:flex;flex-wrap:wrap;align-items:stretch;gap:6px;list-style:none;padding:0;margin:0}
+.checkpoint{display:flex;align-items:center;justify-content:center;gap:6px;min-height:34px;padding:4px 7px;border:1px solid #736080;border-radius:8px;background:#20182f;color:#e8dcf5;font-variant-numeric:tabular-nums}
+.checkpoint-score{font-size:.8125rem;line-height:1.2;font-weight:900;white-space:nowrap}
+.checkpoint-detail{display:flex;flex-direction:column;align-items:center;gap:1px}
+.checkpoint .hearts{font-size:.6875rem;line-height:1;letter-spacing:0}
+.checkpoint-state{font-size:.625rem;line-height:1.2;font-weight:800}
+.checkpoint.current{border-color:var(--cyan);background:#204156;color:#e0faff;box-shadow:inset 0 1px #a9efff42,0 0 8px #7cdfff1c}
+.checkpoint.current .checkpoint-score{font-weight:1000}
+.checkpoint.fallback{border-style:dashed;border-color:var(--gold);background:#3a2e3d;color:#ffe7af}
+.checkpoint.barred{border-color:#625568;background:#241b30;color:#b9a9c3}
+.checkpoint.barred s{text-decoration-thickness:2px}
+.checkpoint-empty,.checkpoint-zero{font-size:.6875rem;line-height:1.4;color:var(--muted)}
+.checkpoint-zero{display:block;margin-top:4px}
 @media(prefers-reduced-motion:reduce){*,*::after{animation:none!important;transition:none!important}dialog::backdrop{backdrop-filter:none}}

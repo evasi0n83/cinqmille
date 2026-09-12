@@ -34,8 +34,20 @@ function render(){
   if(restoreFocus&&!modal.open){const next=app.querySelector('[data-add]:not(:disabled)')||app.querySelector('[data-player]');next?.focus({preventScroll:true});}
 }
 function renderSetup(){
-  app.innerHTML=`<section class="setup panel"><div class="setup-intro"><span class="eyebrow">À VOS CINQ DÉS</span><h1>Qui joue ce soir ?</h1><p>Ajoute les joueurs dans l’ordre des tours.</p></div><form id="setup-form"><div class="name-list">${setupNames.map((name,i)=>`<div class="name-row"><span class="avatar" style="--player:${COLORS[i]}" aria-hidden="true">${i+1}</span><label class="visually-hidden" for="name-${i}">Joueur ${i+1}</label><input id="name-${i}" data-name="${i}" type="text" maxlength="24" autocomplete="off" value="${escape(name)}" placeholder="Prénom du joueur ${i+1}" required><button type="button" class="remove-player" data-remove="${i}" aria-label="Retirer le joueur ${i+1}" ${setupNames.length<=2?'disabled':''}>×</button></div>`).join('')}</div><button type="button" class="secondary add-player" data-action="add-player" ${setupNames.length>=12?'disabled':''}>+ Ajouter un joueur</button><div class="rules-chip"><span>Entrée <b>400 min.</b></span><span>Palier <b>3 vies</b></span><span>Victoire <b>5 000 pile</b></span></div><p id="setup-error" class="form-error" role="alert"></p><button type="submit" class="primary start-game">Commencer la partie</button>${session?'<button type="button" class="text-button cancel-setup" data-action="resume">Reprendre la partie en cours</button>':''}</form></section>`;
+  app.innerHTML=`<section class="setup panel"><div class="setup-intro"><span class="eyebrow">À VOS CINQ DÉS</span><h1>Qui joue ce soir ?</h1><p>Ajoute les joueurs, puis utilise les flèches pour choisir l’ordre des tours.</p></div><form id="setup-form"><div class="name-list">${setupNames.map((name,i)=>`<div class="name-row"><span class="avatar" style="--player:${COLORS[i]}" aria-hidden="true">${i+1}</span><label class="visually-hidden" for="name-${i}">Joueur ${i+1}</label><input id="name-${i}" data-name="${i}" type="text" maxlength="24" autocomplete="off" value="${escape(name)}" placeholder="Prénom du joueur ${i+1}" required><button type="button" class="remove-player" data-remove="${i}" aria-label="Retirer le joueur ${i+1}" ${setupNames.length<=2?'disabled':''}>×</button><div class="order-controls"><button type="button" class="order-button" data-move="-1" data-index="${i}" aria-label="Monter le joueur ${i+1}" ${i===0?'disabled':''}><span aria-hidden="true">↑</span> Monter</button><button type="button" class="order-button" data-move="1" data-index="${i}" aria-label="Descendre le joueur ${i+1}" ${i===setupNames.length-1?'disabled':''}><span aria-hidden="true">↓</span> Descendre</button></div></div>`).join('')}</div><button type="button" class="secondary add-player" data-action="add-player">+ Ajouter un joueur</button><div class="rules-chip"><span>Entrée <b>400 min.</b></span><span>Palier <b>3 vies</b></span><span>Victoire <b>5 000 pile</b></span></div><p id="setup-error" class="form-error" role="alert"></p><button type="submit" class="primary start-game">Commencer la partie</button>${session?'<button type="button" class="text-button cancel-setup" data-action="resume">Reprendre la partie en cours</button>':''}</form></section>`;
+  document.querySelector('.add-player').disabled=setupNames.length>=12;
   status();
+}
+function moveSetupPlayer(index,direction){
+  if(screen!=='setup'||spectator||busy||!Number.isInteger(index)||![-1,1].includes(direction))return;
+  const destination=index+direction;
+  if(index<0||index>=setupNames.length||destination<0||destination>=setupNames.length)return;
+  const name=setupNames[index].trim()||`Le joueur ${index+1}`;
+  [setupNames[index],setupNames[destination]]=[setupNames[destination],setupNames[index]];
+  renderSetup();
+  const next=app.querySelector(`[data-index="${destination}"][data-move="${direction}"]`);
+  (next.disabled?app.querySelector(`[data-index="${destination}"][data-move="${-direction}"]`):next).focus();
+  toast(`${name} passe en position ${destination+1} sur ${setupNames.length}.`);
 }
 function updateDraft(){
   const input=document.querySelector('#turn-score'),button=document.querySelector('#validate-score');if(!input||!button)return;
@@ -121,6 +133,7 @@ document.addEventListener('click',async e=>{
   if(button.id==='menu-button'){showMenu();return;}
   if(button.dataset.player){showHistory(button.dataset.player);return;}
   if(button.dataset.add&&!spectator&&!busy){draft=Math.min(999999,(Number.isSafeInteger(draft)?draft:0)+Number(button.dataset.add));document.querySelector('#turn-score').value=draft;updateDraft();persist();return;}
+  if(button.dataset.move!==undefined){moveSetupPlayer(Number(button.dataset.index),Number(button.dataset.move));return;}
   if(button.dataset.remove!==undefined&&!spectator){setupNames.splice(Number(button.dataset.remove),1);renderSetup();return;}
   if(button.dataset.action)await handleAction(button.dataset.action);
 });
